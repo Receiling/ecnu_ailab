@@ -1,0 +1,172 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAXN = 65;//数据的个数
+const int K = 2;//要分成的类别数目
+const int D = 6;//变量数目，维数
+const double INF = 1000000000.0;
+
+double data[D][MAXN];
+int cnt;//实际数据个数
+vector<int>group[K];
+double charas[K][D];
+int ans[MAXN];
+double param[D] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+
+/**********从文件读入数据**********/
+void read()
+{
+    FILE *fp_location = fopen("test.txt", "r");
+    double temp[D][2] = {0};//用于记录每一个变量对应的最大值最小值，temp[i][0]--MIN， temp[i][1]--MAX
+    for(int i = 0; i < D; ++i)
+    {
+        temp[i][0] = INF;
+        temp[i][1] = -INF;
+    }
+    while(fscanf(fp_location, "%d", &cnt) != EOF)
+    {
+        cnt -= 1;
+        for(int i = 0; i < D; ++i)
+        {
+            fscanf(fp_location, "%lf", &data[i][cnt]);
+            temp[i][0] = min(temp[i][0], data[i][cnt]);
+            temp[i][1] = max(temp[i][1], data[i][cnt]);
+        }
+    }
+    fclose(fp_location);
+    /*****做0-1化处理*****/
+    /*for(int i = 0; i < D; ++i)
+    {
+        double s = temp[i][1] - temp[i][0];//MAX - MIN
+        double t = temp[i][0];// MIN
+        for(int j = 0; j <= cnt; ++j)
+        {
+            data[i][j] = (data[i][j] - t) / s;
+        }
+    }*/
+    return;
+}
+
+/**********初始随机选择分类**********/
+void start()
+{
+    srand((unsigned)time(0));
+    for(int i = 0; i < K; ++i)
+        group[i].clear();
+    for(int i = 0; i <= cnt; ++i)
+    {
+        if(rand() % 2)
+        //if(i % 2)
+            group[0].push_back(i);
+        else
+            group[1].push_back(i);
+    }
+    return;
+}
+
+/**********计算每一个类的特征向量，样本均值**********/
+void calculate()
+{
+    for(int i = 0; i < K; ++i)
+    {
+        int len = group[i].size();
+        double sum[D] = {0};
+        for(int j = 0; j < len; ++j)
+        {
+            int temp = group[i][j];
+            ans[temp] = i;
+            for(int t = 0; t < D; ++t)
+            {
+                sum[t] += data[t][temp];
+            }
+        }
+        for(int j = 0; j < D; ++j)
+            charas[i][j] = sum[j] / len;
+    }
+    return;
+}
+
+/**********计算欧氏距离**********/
+double dis(int point, int g)//point代表要计算的这个数据，g代表是哪个类
+{
+    double sum = 0.0;
+    for(int i = 0; i < D; ++i)
+        sum = sum + pow((data[i][point] - charas[g][i]), 2);
+    return sum;
+}
+
+/**********判断是否结束**********/
+bool isEnd(int* new_ans)
+{
+    for(int i = 0; i <= cnt; ++i)
+    {
+        if(ans[i] != new_ans[i])
+            return false;
+    }
+    return true;
+}
+
+/**********k-means算法**********/
+void K_means()
+{
+    do
+    {
+        for(int i = 0; i < K; ++i)
+            group[i].clear();
+        for(int i = 0; i <= cnt; ++i)
+        {
+            int min_g = 0;
+            double min_dis = dis(i, 0);
+            for(int j = 1; j < K; ++j)
+            {
+                double temp = dis(i, j);
+                if(temp < min_dis)
+                {
+                    min_dis = temp;
+                    min_g = j;
+                }
+            }
+            group[min_g].push_back(i);
+        }
+        int new_ans[MAXN];
+        for(int i = 0; i < K; ++i)
+        {
+            int len = group[i].size();
+            for(int j = 0; j < len; ++j)
+            {
+                new_ans[group[i][j]] = i;
+            }
+        }
+        /*for(int i = 0; i < K; ++i)
+        {
+            printf("第%d类：\n", i + 1);
+            int len = group[i].size();
+            for(int j = 0; j < len; ++j)
+                printf("%d ", group[i][j] + 1);
+            printf("\n");
+        }*/
+        if(isEnd(new_ans)) break;
+        calculate();
+    }
+    while(true);
+    return;
+}
+
+int main()
+{
+    //freopen("ans.txt", "w", stdout);
+    read();
+    start();
+    calculate();
+    K_means();
+    for(int i = 0; i < K; ++i)
+    {
+        printf("第%d类：\n", i + 1);
+        int len = group[i].size();
+        for(int j = 0; j < len; ++j)
+            printf("%d ", group[i][j] + 1);
+        printf("\n");
+    }
+    return 0;
+}

@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1494922972 source:c:\users\wyj\desktop\nqueens\main.cpp
+	<iostream>
+	<cstring>
+	<cstdio>
+	<queue>
+	<cmath>
+	<time.h>
+	<stack>
+

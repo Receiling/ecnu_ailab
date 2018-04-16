@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAXN = 155;//数据的个数
+const int K = 2;//要分成的类别数目
+const int D = 6;//变量数目，维数
+const double INF = 1000000000.0;
+const double eps = 1e-6;
+
+double data[MAXN][D];
+int cnt;//实际数据个数
+int fa[MAXN];
+bool used[MAXN];
+
+/**********并查集*******************/
+void init(int n)
+{
+    for(int i = 0; i < n; ++i)
+        fa[i] = i;
+    return;
+}
+
+int find(int x)
+{
+    if(fa[x] == x) return x;
+    return fa[x] = find(fa[x]);
+}
+
+void unit(int x, int y)
+{
+    x = find(x);
+    y = find(y);
+    if(x != y)
+        fa[x] = y;
+    return;
+}
+
+/**********从文件读入数据**********/
+void read()
+{
+    FILE *fp_location = fopen("test.txt", "r");
+    double temp[2][D] = {0};//用于记录每一个变量对应的最大值最小值，temp[0][i]--MIN， temp[1][i]--MAX
+    for(int i = 0; i < D; ++i)
+    {
+        temp[0][i] = INF;
+        temp[1][i] = -INF;
+    }
+    while(fscanf(fp_location, "%d", &cnt) != EOF)
+    {
+        cnt -= 1;
+        for(int i = 0; i < D; ++i)
+        {
+            fscanf(fp_location, "%lf", &data[cnt][i]);
+            temp[0][i] = min(temp[0][i], data[cnt][i]);
+            temp[1][i] = max(temp[1][i], data[cnt][i]);
+        }
+    }
+    fclose(fp_location);
+    /*****做0-1化处理*****/
+    /*for(int i = 0; i < D; ++i)
+    {
+        double s = temp[1][i] - temp[0][i];//MAX - MIN
+        double t = temp[0][i];// MIN
+        for(int j = 0; j <= cnt; ++j)
+        {
+            data[j][i] = (data[j][i] - t) / s;
+        }
+    }*/
+    return;
+}
+
+/**********计算欧氏距离**********/
+double dis(int p1, int p2)//point代表要计算的这个数据，g代表是哪个类
+{
+    double sum = 0.0;
+    for(int i = 0; i < D; ++i)
+        sum = sum + pow((data[p1][i] - data[p2][i]), 2);
+    return sum;
+}
+
+
+void HC()
+{
+    init(MAXN);
+    int all = cnt;
+    memset(used, 0, sizeof(used));
+    for(int k = 0; k < cnt - 1; ++k)
+    {
+        int min_i = 0, min_j = 0;
+        double min_c = INF;
+        for(int i = 0; i <= all; ++i)
+        {
+            if(!used[i])
+            {
+                for(int j = i + 1; j <= all; ++j)
+                {
+                    if(!used[j])
+                    {
+                        double temp = dis(i, j);
+                        if(temp < min_c)
+                        {
+                            min_c = temp;
+                            min_i = i;
+                            min_j = j;
+                        }
+                    }
+                }
+            }
+        }
+        used[min_i] = 1;
+        used[min_j] = 1;
+        all += 1;
+        for(int i = 0; i < D; ++i)
+        {
+            data[all][i] = (data[min_i][i] + data[min_j][i]) / 2;
+        }
+        unit(min_i, all);
+        unit(min_j, all);
+    }
+   map<int, vector<int> > group;
+    for(int i = 0; i <= cnt; ++i)
+    {
+        group[find(i)].push_back(i + 1);
+    }
+    int cnt = 1;
+    for(auto it : group)
+    {
+        vector<int> tmp = it.second;
+        printf("第%d类: ", cnt++);
+        int len = tmp.size();
+        for(int i = 0; i < len; ++i)
+            printf("%d%c", tmp[i], i == len - 1 ? '\n' : ',');
+    }
+    return;
+}
+int main()
+{
+    //freopen("ans.txt", "w", stdout);
+    read();
+    HC();
+    /*for(int i = 0; i < K; ++i)
+    {
+        printf("第%d类：\n", i + 1);
+        int len = group[i].size();
+        for(int j = 0; j < len; ++j)
+            printf("%d ", group[i][j] + 1);
+        printf("\n");
+    }*/
+    return 0;
+}

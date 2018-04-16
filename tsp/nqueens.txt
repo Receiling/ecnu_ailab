@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+struct Point
+{
+    double x, y;
+};
+Point cities[200];
+double cost[200][200];
+int path[200];
+int cnt;
+double best;
+double local_best;
+
+/**********用于计算两点之间的距离**********/
+double dis(Point p1, Point p2)
+{
+    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+}
+
+/**********从文件读入城市信息**********/
+void read()
+{
+    FILE *fp_location = fopen("Cities(144).txt", "r");
+    cnt = 0;
+    double xx, yy;
+    while(fscanf(fp_location, "%d%lf%lf", &cnt, &xx, &yy) != EOF)
+    {
+        cities[cnt].x = xx;
+        cities[cnt].y = yy;
+    }
+    fclose(fp_location);
+    for(int i = 1; i <= cnt; ++i)
+        for(int j = 1; j <= cnt; ++j)
+    {
+        if(i == j)
+        {
+            cost[i][j] = 0.0;
+            continue;
+        }
+        cost[i][j] = cost[j][i] = dis(cities[i], cities[j]);
+    }
+    return;
+}
+
+/**********生成一组随机解**********/
+void GeneratePermutation()
+{
+	for(int i = 0; i < cnt; i++) path[i] = i + 1;
+
+	int high, low;
+	int rand_index;
+
+    int sqrt_n = (int)sqrt(1.0 * cnt);
+
+	for(int i = 1; i < cnt; i++)
+	{
+		// 考虑到N的数值可能很大，随机数由两段拼接而成
+		high = rand() % sqrt_n;
+		low = rand()% sqrt_n;
+		rand_index = high * sqrt_n + low;
+        if(rand_index == 0) continue;
+		swap(path[i], path[rand_index]);
+	}
+	return;
+}
+
+bool isEnd()
+{
+    return fabs(local_best - best) > 1.0;
+}
+
+double changePath(int a, int b)
+{
+    double tmp1 = cost[path[a]][path[(a + 1) % cnt]] + cost[path[b]][path[(b + 1) % cnt]] + cost[path[a]][path[(a - 1) % cnt]] + cost[path[b]][path[(b - 1) % cnt]];
+    swap(path[a], path[b]);
+    double tmp2 = cost[path[a]][path[(a + 1) % cnt]] + cost[path[b]][path[(b + 1) % cnt]] + cost[path[a]][path[(a - 1) % cnt]] + cost[path[b]][path[(b - 1) % cnt]];
+    swap(path[a], path[b]);
+    return tmp1 - tmp2;
+}
+/**********评价函数**********/
+double evaluate()
+{
+    double sum = 0.0;
+    for(int i = 0; i < cnt; ++i)
+        sum = sum + cost[path[i]][path[(i + 1) % cnt]];
+    return sum;
+}
+
+/**********局部搜索**********/
+void Local_Search()
+{
+    best = 100000000.0;
+    local_best = 100000000.0;
+    int res = 0;
+    do
+    {
+        res += 1;
+        if(res > 1000) break;
+        best = min(best, local_best);
+        GeneratePermutation();
+        local_best = evaluate();
+        int ok = true;
+        while(ok)
+        {
+            ok = false;
+            for(int i = 1; i < cnt; ++i)
+                for(int j = i + 1; j < cnt; ++j)
+            {
+                double gain = changePath(i, j);
+                if(gain > 1.0)
+                {
+                    ok = true;
+                    local_best -= gain;
+                    swap(path[i], path[j]);
+                }
+            }
+        }
+        //printf("%.3f\n", local_best);
+    }
+    while(isEnd());
+    return;
+}
+
+int main()
+{
+    read();
+    srand((unsigned)time(0));
+    Local_Search();
+    printf("%.3f\n", best);
+    return 0;
+}
+

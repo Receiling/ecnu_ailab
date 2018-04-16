@@ -1,0 +1,14 @@
+# depslib dependency file v1.0
+1494923069 source:c:\users\wyj\desktop\shortpath\main.cpp
+	<iostream>
+	<cstdio>
+	<cstdlib>
+	<cmath>
+	<algorithm>
+	<string>
+	<cstring>
+	<queue>
+	<stack>
+	<vector>
+	<fstream>
+

@@ -1,0 +1,264 @@
+#include <cmath>
+#include <ctime>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <iostream>
+#include <algorithm>
+
+using namespace std;
+
+const int N = 143;  // 城市的数目
+const int MAX_SIZE = 200;
+const int INF = 9999999;
+int sol[MAX_SIZE];
+int newsol[MAX_SIZE];
+double cost[MAX_SIZE][MAX_SIZE];  // 记录两个城市之间的距离
+struct Coordinate
+{
+    double x, y;
+};
+Coordinate co[MAX_SIZE];
+
+// 计算i城市和j城市的距离
+double distance(int i, int j)
+{
+    return sqrt((co[i].x - co[j].x) * (co[i].x - co[j].x) + (co[i].y - co[j].y) * (co[i].y - co[j].y));
+}
+
+// 产生一个随机解
+void produce_random_solution()
+{
+    for (int i = 1; i <= N; i++)
+        sol[i] = i + 1;
+}
+
+// 计算解s的代价
+double calculate_cost(int s[])
+{
+    double ans = cost[1][s[1]];
+    for (int i = 1; i <= N - 1; i++)
+        ans += cost[s[i]][s[i + 1]];
+    ans += cost[s[N]][1];
+    return ans;
+}
+
+// 从领域中随机选择一个解
+void generate_new_solution()
+{
+    memcpy(newsol, sol, sizeof(sol));
+
+    int i = (rand() % N) + 1;
+    int j = (rand() % N) + 1;
+    if (i > j)
+        swap(i, j);
+    else if (i == j)
+        return;
+
+    int choose = rand() % 3;
+    if (choose == 0)  // 交换
+        swap(newsol[i], newsol[j]);
+    else if (choose == 1)  // 置逆
+        reverse(newsol + i, newsol + j);
+    else  // 移位
+    {
+        if (j > N)
+            return;
+        rotate(newsol + i, newsol + j, newsol + j + 1);  // 将区间[i, j + 1)内的元素循环左移，直到a[j]位于首位，即循环右移一位。
+    }
+}
+
+// 在当前局部最优解的基础上，再走step步，以期跳出局部最优解的窘境。
+// 实现方法就是随机交换两个数字，重复step次。
+void walk(int step)
+{
+    for (int i = 1; i <= step; i++)
+    {
+        int rx = (rand() % N) + 1, ry = (rand() % N) + 1;
+        swap(sol[rx], sol[ry]);
+    }
+}
+
+int main()
+{
+    freopen("t1.txt", "r", stdin);
+
+    for (int i = 1; i <= N + 1; i++)
+    {
+        int t;
+        scanf("%d", &t);
+        scanf("%lf%lf", &co[t].x, &co[t].y);
+    }
+
+    for (int i = 1; i <= N + 1; i++)
+        for (int j = 1; j <= N + 1; j++)
+            cost[i][j] = distance(i, j);
+
+    // 局部搜索
+    double ans = INF;
+    srand((unsigned)time(0));
+    produce_random_solution();
+    for (int k = 1; k <= 100; k++)
+    {
+        int flag = 1;  // 标记本轮有没有找到更优状态
+        while (flag)
+        {
+            flag = 0;
+            for (int i = 0; i < 100 * N; i++)
+            {
+                generate_new_solution();
+
+                double cost_a = calculate_cost(sol);
+                double cost_b = calculate_cost(newsol);
+                if (cost_a > cost_b)
+                {
+                    flag = 1;
+                    memcpy(sol, newsol, sizeof(newsol));
+                }
+            }
+        }
+        double t = calculate_cost(sol);
+        if (t < ans)
+            ans = t;
+
+        // 虽然这时候的解是局部最优解，但完全抛弃很可惜，不如在局部最优解的基础之上构造一个初始解
+	if (t >= 40000)
+            walk(10);
+        else if (t > 39000)
+            walk(6);
+        else if (t > 38000)
+            walk(5);
+        else if (t > 37000)
+            walk(4);
+        else
+            walk(3);
+    }
+
+    printf("%.2f\n", ans);
+
+    return 0;
+}
+最优结果：30677.97
+
+#include <cmath>
+#include <ctime>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <iostream>
+#include <algorithm>
+
+using namespace std;
+
+const int N = 143;  // 城市的数目
+const int MAX_SIZE = 200;
+const int INF = 9999999;
+const int L = 100 * N;  // 马尔可夫链的长度
+const double SPEED = 0.98;  // 退火速度
+const double MIN_TEMP = 0.01;  // 终止温度
+const double INIT_TEMP = 1000;  // 初始温度
+int sol[MAX_SIZE];
+int newsol[MAX_SIZE];
+double cost[MAX_SIZE][MAX_SIZE];  // 记录两个城市之间的距离
+struct Coordinate
+{
+    double x, y;
+};
+Coordinate co[MAX_SIZE];
+
+// 计算i城市和j城市的距离
+double distance(int i, int j)
+{
+    return sqrt((co[i].x - co[j].x) * (co[i].x - co[j].x) + (co[i].y - co[j].y) * (co[i].y - co[j].y));
+}
+
+// 产生一个随机解
+void produce_random_solution()
+{
+    for (int i = 1; i <= N; i++)
+        sol[i] = i + 1;
+}
+
+// 计算解s的代价
+double calculate_cost(int s[])
+{
+    double ans = cost[1][s[1]];
+    for (int i = 1; i <= N - 1; i++)
+        ans += cost[s[i]][s[i + 1]];
+    ans += cost[s[N]][1];
+    return ans;
+}
+
+// 判断是否可以接受新解
+bool Accepted(double t)
+{
+    double cost_a = calculate_cost(sol);
+    double cost_b = calculate_cost(newsol);
+    if (cost_b < cost_a)  // 新解代价比旧解更小，就接受它。
+        return true;
+    if ((int)(exp((cost_a - cost_b) / t) * 100) > (rand() % 101))  // 产生温度突变，虽然新解没有旧解好，仍接受它。
+        return true;
+    return false;
+}
+
+// 在领域内获得一个解
+void generate_new_solution()
+{
+    memcpy(newsol, sol, sizeof(sol));
+
+    int i = (rand() % N) + 1;
+    int j = (rand() % N) + 1;
+    if (i > j)
+        swap(i, j);
+    else if (i == j)
+        return;
+
+    int choose = rand() % 3;
+    if (choose == 0)  // 交换
+        swap(newsol[i], newsol[j]);
+    else if (choose == 1)  // 置逆
+        reverse(newsol + i, newsol + j);
+    else  // 移位
+    {
+        if (j == N)
+            return;
+        rotate(newsol + i, newsol + j, newsol + j + 1);  // 将区间[i, j + 1)内的元素循环左移，直到a[j]位于首位，即循环右移一位。
+    }
+}
+
+int main()
+{
+    //freopen("t1.txt", "r", stdin);
+
+    for (int i = 1; i <= N + 1; i++)
+    {
+        int t;
+        scanf("%d", &t);
+        scanf("%lf%lf", &co[t].x, &co[t].y);
+    }
+
+    for (int i = 1; i <= N + 1; i++)
+        for (int j = 1; j <= N + 1; j++)
+            cost[i][j] = distance(i, j);
+
+    // 模拟退火
+    srand((unsigned)time(0));
+    produce_random_solution();
+    double t = INIT_TEMP;
+    while (t > MIN_TEMP)
+    {
+        for (int i = 0; i < L; i++)
+        {
+            generate_new_solution();
+
+            if (Accepted(t))
+                memcpy(sol, newsol, sizeof(newsol));
+        }
+        t *= SPEED;  // 退火
+    }
+
+    printf("%.2f\n", calculate_cost(sol));
+
+    return 0;
+}
+最佳结果：30629.55

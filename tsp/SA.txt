@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+struct Point
+{
+    double x, y;
+};
+const double E = 2.71828182845;
+Point cities[200];
+double cost[200][200];
+int path[200];
+int cnt;
+double best;
+double local_best;
+
+/**********用于计算两点之间的距离**********/
+double dis(Point p1, Point p2)
+{
+    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+}
+
+/**********从文件读入城市信息**********/
+void read()
+{
+    FILE *fp_location = fopen("Cities(144).txt", "r");
+    cnt = 0;
+    double xx, yy;
+    while(fscanf(fp_location, "%d%lf%lf", &cnt, &xx, &yy) != EOF)
+    {
+        cities[cnt].x = xx;
+        cities[cnt].y = yy;
+    }
+    fclose(fp_location);
+    for(int i = 1; i <= cnt; ++i)
+        for(int j = 1; j <= cnt; ++j)
+    {
+        if(i == j)
+        {
+            cost[i][j] = 0.0;
+            continue;
+        }
+        cost[i][j] = cost[j][i] = dis(cities[i], cities[j]);
+    }
+    return;
+}
+
+/**************交换a,b两个位置后得到的评价值与未交换的值的差************************/
+double changePath(int a, int b)
+{
+    double tmp1 = cost[path[a]][path[(a + 1) % cnt]] + cost[path[b]][path[(b + 1) % cnt]] + cost[path[a]][path[(a - 1) % cnt]] + cost[path[b]][path[(b - 1) % cnt]];
+    swap(path[a], path[b]);
+    double tmp2 = cost[path[a]][path[(a + 1) % cnt]] + cost[path[b]][path[(b + 1) % cnt]] + cost[path[a]][path[(a - 1) % cnt]] + cost[path[b]][path[(b - 1) % cnt]];
+    swap(path[a], path[b]);
+    return tmp2 - tmp1;
+}
+
+/**********评价函数**********/
+double evaluate()
+{
+    double sum = 0.0;
+    for(int i = 0; i < cnt; ++i)
+        sum = sum + cost[path[i]][path[(i + 1) % cnt]];
+    return sum;
+}
+
+/**********模拟退火**********/
+void SA()
+{
+    best = 100000000.0;
+    for(int i = 0; i < cnt; ++i)
+        path[i] = i + 1;
+    double min_d = 10000000000.0;
+    double max_d = -10000000000.0;
+    for(int i = 0; i < cnt; ++i)
+    {
+        min_d = min(min_d, cost[path[i]][path[(i + 1 ) % cnt]]);
+        max_d = max(max_d, cost[path[i]][path[(i + 1 ) % cnt]]);
+    }
+    double st_tmp = (min_d - max_d) / log(0.9);
+    int res = 0;
+    while(st_tmp > 0.01 || res < 300)
+    {
+        for(int i = 0; i < 30000; ++i)
+        {
+            int a = rand() % cnt;
+            int b = rand() % cnt;
+            double gain = changePath(a, b);
+            double r = rand() * 1.0 / (1.0 * RAND_MAX);
+            if(gain < 0 || r < pow(E, - gain / st_tmp))
+            {
+                swap(path[a], path[b]);
+            }
+        }
+        st_tmp *= 0.92;
+        local_best = evaluate();
+        if(local_best < best)
+        {
+            best = local_best;
+            res = 0;
+        }
+        else res += 1;
+    }
+}
+
+int main()
+{
+    read();
+    double min_x = 1000000000000.0;
+    for(int i = 0; i < 50; ++i)
+    {
+        srand((unsigned)time(0));
+        SA();
+        if(best < min_x)
+            min_x = best;
+        //printf("%.3f\n", best);
+    }
+    printf("%.3f\n", min_x);
+    return 0;
+}
+
